@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 from tqdm import tqdm
 
+from configs.config import settings
 
 class EvalLSTM:
     def __init__(self, model, device, compute_rouge: bool = False):
@@ -12,8 +13,14 @@ class EvalLSTM:
         self.compute_rouge = compute_rouge
         self.criterion = nn.CrossEntropyLoss()
 
+
+    def generate(self, input_ids: list[int], n_tokens: int, tokenizer) -> str:
+        self.model.eval()
+        gen_ids = self._generate_ids(input_ids, n_tokens)
+        return tokenizer.decode(gen_ids)
+    
+
     def _generate_ids(self, input_ids: list[int], n_tokens: int) -> list[int]:
-        """Внутренний метод — возвращает только сгенерированные токены."""
         tokens = input_ids.copy()
         seq_len = len(input_ids)
 
@@ -27,12 +34,6 @@ class EvalLSTM:
         return tokens[seq_len:]  # только новые токены
 
 
-    def generate(self, input_ids: list[int], n_tokens: int, tokenizer) -> str:
-        """Публичный метод — возвращает декодированную строку."""
-        self.model.eval()
-        gen_ids = self._generate_ids(input_ids, n_tokens)
-        return tokenizer.decode(gen_ids)
-
     def generate_with_sampling(self, input_ids: list[int], n_tokens: int, tokenizer,
                                temperature: float = 1.0, top_k: int = 0) -> str:
         self.model.eval()
@@ -44,7 +45,7 @@ class EvalLSTM:
                 x = torch.tensor(tokens[-seq_len:]).unsqueeze(0).to(self.device)
                 logits = self.model(x)[0, -1, :]   # (vocab_size,)
 
-                # temperature — сглаживает или заостряет распределение
+                # temperature — сглаживаем или заостряем распределение
                 logits = logits / temperature
 
                 # top-k — оставляем только k наиболее вероятных токенов
