@@ -4,7 +4,7 @@ import torch.nn as nn
 from tqdm import tqdm
 
 # from src.eval_lstm import EvalLSTM
-
+from configs.config import settings
 
 class LSTMTrain:
     def __init__(self, model, device, evaluator):
@@ -14,9 +14,9 @@ class LSTMTrain:
         self.optimizer = torch.optim.Adam(model.parameters(), lr=0.002, weight_decay=1e-5)
         self.criterion = nn.CrossEntropyLoss()
 
-    def model_train(self, train_loader, val_loader, tokenizer, rouge_every_n=1):
+    def model_train(self, train_loader, val_loader, tokenizer):
         print("Start model train")
-        n_epochs = 5
+        n_epochs = settings.EPOCH
         for epoch in range(n_epochs):
             self.model.train()
             train_loss = 0.
@@ -24,7 +24,7 @@ class LSTMTrain:
                 x_batch = x_batch.to(self.device)
                 y_batch = y_batch.to(self.device)
                 self.optimizer.zero_grad()
-                x_output = self.model(x_batch)
+                x_output, _ = self.model(x_batch)
                 loss = self.criterion(x_output.transpose(1, 2), y_batch)
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
