@@ -2,10 +2,9 @@ import evaluate
 import torch
 
 import torch.nn as nn
-from tqdm import tqdm
 
 from configs.config import settings
-from src.lstm_model import model
+
 
 class EvalLSTM:
     def __init__(self, model, device, compute_rouge: bool = False):
@@ -20,7 +19,6 @@ class EvalLSTM:
         self.model.eval()
         correct, total = 0, 0
         sum_loss = 0
-
         rouge = evaluate.load("rouge") if self.compute_rouge else None
         all_predictions = []
         all_references = []
@@ -30,7 +28,7 @@ class EvalLSTM:
             for x_batch, y_batch in loader:
                 x_batch = x_batch.to(self.device)
                 y_batch = y_batch.to(self.device)
-                x_output, _ = self.model(x_batch)
+                x_output = self.model(x_batch)
                 loss = self.criterion(x_output.transpose(1, 2), y_batch)
                 preds = torch.argmax(x_output, dim=-1)
                 correct += (preds == y_batch).sum().item()
@@ -43,17 +41,23 @@ class EvalLSTM:
                             break
                             
                         tokens = x_batch[i].cpu().tolist()
-                        target = y_batch[i].cpu().tolist()
-
                         prompt_len = max(1, int(len(tokens) * 0.75))
-                        
-                        # Ограничиваем длину генерации средним размером твита
                         n_generate = min(len(tokens) - prompt_len, max_gen_length)
 
-                        gen_ids = model._generate_ids(tokens[:prompt_len], n_tokens=n_generate)
-                        # gen_ids = model._generate_with_sampling(tokens[:prompt_len], n_tokens=n_generate)
-                        all_predictions.append(tokenizer.decode(gen_ids, skip_special_tokens=True))
-                        all_references.append(tokenizer.decode(target[prompt_len:], skip_special_tokens=True))
+                        if n_generate <= 0:
+                            continue
+
+                        prompt_ids = tokens[:prompt_len]
+                        gen_ids = self.model._generate_ids(prompt_ids, n_tokens=n_generate)
+                        # продолжение исходного X после промпта
+                        ref_ids = tokens[prompt_len:prompt_len + n_generate]
+                        pred_full = tokenizer.decode(prompt_ids + gen_ids, skip_special_tokens=True)
+                        prompt_text = tokenizer.decode(prompt_ids, skip_special_tokens=True)
+                        pred_cont = pred_full[len(prompt_text):].strip()
+                        ref_cont = tokenizer.decode(ref_ids, skip_special_tokens=True).strip()
+
+                        all_predictions.append(pred_cont)
+                        all_references.append(ref_cont)
                         
                         rouge_samples_count += 1
 

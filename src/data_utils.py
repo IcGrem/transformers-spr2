@@ -9,11 +9,13 @@ class DataUtils:
     def __init__(self):
         self.data = []
     
+
     def clean_text(self, text: str):
-        text = text.lower()                 # Приведение к нижнему регистру
-        text = re.sub(r'[^a-zа-яё0-9\s]', '', text) # Удаление спецсимволов (regex)
-        text = re.sub(r"\s+", " ", text).strip()       # Удаление лишних пробелов
+        text = text.lower() #  приведение к нижнему регистру
+        text = re.sub(r'[^a-zа-яё0-9\s]', '', text) #  удаление спецсимволов
+        text = re.sub(r"\s+", " ", text).strip() #  удаление лишних пробелов
         return text
+
 
     def load_and_clean(self, file_path: str):
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -23,9 +25,11 @@ class DataUtils:
             if cleaned_text:
                 self.data.append(cleaned_text)
     
+
     def save_cleaned_data(self, data: list, file_path: str):
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write('\n'.join(data))
+
 
     def split_data(self, data: list):
         # делим данные на обучающую 80% и временную 20% выборки
@@ -42,6 +46,7 @@ class DataUtils:
             writer = csv.writer(f)
             writer.writerows(tokenized_data)
 
+
     def load_tokenized_data_csv(self, file_path: str):
         with open(file_path, 'r', encoding='utf-8', newline='') as f:
             reader = csv.reader(f)
@@ -49,13 +54,16 @@ class DataUtils:
         
         return data
 
+
     def __len__(self) -> int:
         return len(self.data)
+
 
     def __getitem__(self, idx: int|slice):
         text = self.data[idx]
         return text
-    
+
+
     def texts_stats(self):
         texts = [text for text in self.data]
         word_counts = [len(text.split()) for text in texts]
@@ -64,5 +72,6 @@ class DataUtils:
         print(f"Медиана: {np.median(word_counts):.2f}")
         print(f"5-й перцентиль: {np.percentile(word_counts, 5):.2f}")
         print(f"95-й перцентиль: {np.percentile(word_counts, 95):.2f}")
+
 
 data_utils = DataUtils()
